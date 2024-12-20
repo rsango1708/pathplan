@@ -2,8 +2,84 @@ import heapq
 import networkx as nx
 import matplotlib.pyplot as plt
 import math
-
+import string
+import itertools
+import time
+from time import sleep
+import rplidar
+from unittest import mock
 # Node class to store information about each node
+mock_gpio = mock.Mock()
+mock_gpio.setmode = mock.Mock()
+mock_gpio.setup = mock.Mock()
+mock_gpio.output = mock.Mock()
+
+
+
+'''PORT_NAME = '/dev/ttyUSB0'  # Adjust this based on your Raspberry Pi's connection
+lidar = rplidar('/dev/ttyUSB0')
+
+# Set a threshold for detecting obstacles
+OBSTACLE_THRESHOLD = 255  # Threshold distance in mm (e.g., 500 mm = 0.5 meters)
+
+
+
+
+def process_lidar_data():
+    # Start scanning with the LiDAR
+    lidar.start_motor()
+    print("Starting scan...")
+
+    try:
+        for scan in lidar.iter_scans():
+            # scan is a list of tuples (angle, distance) where distance is in mm
+            obstacle_detected = False
+            dynamic_obstacle_nodes = set()
+
+            for (angle, distance) in scan:
+                if distance < OBSTACLE_THRESHOLD:
+                    print(f"Obstacle detected at angle {angle}° and distance {distance}mm")
+                    dynamic_obstacle_nodes.add((angle, distance))  # Save the detected obstacle info
+                    obstacle_detected = True
+
+            # Stop scanning after processing the current scan
+            if obstacle_detected:
+                print("Obstacle detected in scan!")
+
+            # Optionally, visualize or process obstacles further
+            visualize_obstacles(dynamic_obstacle_nodes)
+            time.sleep(0.1)  # Delay between scans (for processing)
+
+    except KeyboardInterrupt:
+        print("Stopping scan.")
+    finally:
+        lidar.stop_motor()
+        lidar.disconnect()
+
+def visualize_obstacles(dynamic_obstacle_nodes):
+    """
+    Visualize the obstacles detected by the LiDAR on a polar plot.
+    Each obstacle is displayed based on its angle and distance.
+    """
+    if dynamic_obstacle_nodes:
+        angles = [angle for angle, distance in dynamic_obstacle_nodes]
+        distances = [distance for angle, distance in dynamic_obstacle_nodes]
+
+        # Convert to polar coordinates for visualization
+        plt.figure()
+        plt.subplot(111, projection='polar')
+        plt.scatter([math.radians(a) for a in angles], distances, c='r', label='Obstacles')
+        plt.title("LiDAR Obstacle Detection")
+        plt.legend()
+        plt.show()
+
+# Call the LiDAR processing function
+process_lidar_data()'''
+
+
+
+
+
 class Node:
     def __init__(self, name, heuristic):
         self.name = name
@@ -19,16 +95,16 @@ def greedy_best_first_search_hierarchical(graph, start, goal, heuristic, region_
     heapq.heappush(priority_queue, Node(start, heuristic[start]))
 
     visited = set()  # To keep track of visited nodes
-
-    # Path dictionary to track the explored paths
     path = {start: None}
 
     while priority_queue:
         current_node = heapq.heappop(priority_queue).name
-
+        
         # If the goal is reached, reconstruct the path
         if current_node == goal:
             return reconstruct_path(path, start, goal)
+        if current_node in visited:
+            continue
 
         visited.add(current_node)
 
@@ -102,292 +178,253 @@ def visualize_graph(graph, path, pos, region_map):
 # Complex graph with hierarchical regions
 
 
-graph = {
-      'A': ['B', 'K'],
-    'B': ['A', 'C', 'L'],
-    'C': ['B', 'D', 'M'],
-    'D': ['C', 'E', 'N'],
-    'E': ['D', 'F', 'O'],
-    'F': ['E', 'G', 'P'],
-    'G': ['F', 'H', 'Q'],
-    'H': ['G', 'I', 'R'],
-    'I': ['H', 'J', 'S'],
-    'J': ['I', 'T'],
-    'K': ['L', 'A', 'U'],
-    'L': ['K', 'M', 'B', 'V'],
-    'M': ['L', 'N', 'C', 'W'],
-    'N': ['M', 'O', 'D', 'X'],
-    'O': ['N', 'P', 'E', 'Y'],
-    'P': ['O', 'Q', 'F', 'Z'],
-    'Q': ['P', 'R', 'G', 'AA'],
-    'R': ['Q', 'S', 'H', 'AB'],
-    'S': ['R', 'T', 'I', 'AC'],
-    'T': ['S', 'J', 'AD'],
-    'U': ['V', 'K', 'AE'],
-    'V': ['U', 'W', 'L', 'AF'],
-    'W': ['V', 'X', 'M', 'AG'],
-    'X': ['W', 'Y', 'N', 'AH'],
-    'Y': ['X', 'Z', 'O', 'AI'],
-    'Z': ['Y', 'AA', 'P', 'AJ'],
-    'AA': ['Z', 'AB', 'Q', 'AK'],
-    'AB': ['AA', 'AC', 'R', 'AL'],
-    'AC': ['AB', 'AD', 'S', 'AM'],
-    'AD': ['AC', 'T', 'AN'],
-    'AE': ['AF', 'U', 'AO'],
-    'AF': ['AE', 'AG', 'V', 'AP'],
-    'AG': ['AF', 'AH', 'W', 'AQ'],
-    'AH': ['AG', 'AI', 'X', 'AR'],
-    'AI': ['AH', 'AJ', 'Y', 'AS'],
-    'AJ': ['AI', 'AK', 'Z', 'AT'],
-    'AK': ['AJ', 'AL', 'AA', 'AU'],
-    'AL': ['AK', 'AM', 'AB', 'AV'],
-    'AM': ['AL', 'AN', 'AC', 'AW'],
-    'AN': ['AM', 'AD', 'AX'],
-    'AO': ['AP', 'AE', 'AY'],
-    'AP': ['AO', 'AQ', 'AF', 'AZ'],
-    'AQ': ['AP', 'AR', 'AG', 'BA'],
-    'AR': ['AQ', 'AS', 'AH', 'BB'],
-    'AS': ['AR', 'AT', 'AI', 'BC'],
-    'AT': ['AS', 'AU', 'AJ', 'BD'],
-    'AU': ['AT', 'AV', 'AK', 'BE'],
-    'AV': ['AU', 'AW', 'AL', 'BF'],
-    'AW': ['AV', 'AX', 'AM', 'BG'],
-    'AX': ['AW', 'AN', 'BH'],
-    'AY': ['AZ', 'AO', 'BI'],
-    'AZ': ['AY', 'BA', 'AP', 'BJ'],
-    'BA': ['AZ', 'BB', 'AQ', 'BK'],
-    'BB': ['BA', 'BC', 'AR', 'BL'],
-    'BC': ['BB', 'BD', 'AS', 'BM'],
-    'BD': ['BC', 'BE', 'AT', 'BN'],
-    'BE': ['BD', 'BF', 'AU', 'BO'],
-    'BF': ['BE', 'BG', 'AV', 'BP'],
-    'BG': ['BF', 'BH', 'AW', 'BQ'],
-    'BH': ['BG', 'AX', 'BR'],
-    'BI': ['BJ', 'AY', 'BS'],
-    'BJ': ['BI', 'BK', 'AZ', 'BT'],
-    'BK': ['BJ', 'BL', 'BA', 'BU'],
-    'BL': ['BK', 'BM', 'BB', 'BV'],
-    'BM': ['BL', 'BN', 'BC', 'BW'],
-    'BN': ['BM', 'BO', 'BD', 'BX'],
-    'BO': ['BN', 'BP', 'BE', 'BY'],
-    'BP': ['BO', 'BQ', 'BF', 'BZ'],
-    'BQ': ['BP', 'BR', 'BG', 'CA'],
-    'BR': ['BQ', 'BH', 'CB'],
-    'BS': ['BT', 'BI', 'CC'],
-    'BT': ['BS', 'BU', 'BJ', 'CD'],
-    'BU': ['BT', 'BV', 'BK', 'CE'],
-    'BV': ['BU', 'BW', 'BL', 'CF'],
-    'BW': ['BV', 'BX', 'BM', 'CG'],
-    'BX': ['BW', 'BY', 'BN', 'CH'],
-    'BY': ['BX', 'BZ', 'BO', 'CI'],
-    'BZ': ['BY', 'CA', 'BP', 'CJ'],
-    'CA': ['BZ', 'CB', 'BQ', 'CK'],
-    'CB': ['CA', 'BR', 'CL'],
-    'CC': ['CD', 'BS', 'CM'],
-    'CD': ['CC', 'CE', 'BT', 'CN'],
-    'CE': ['CD', 'CF', 'BU', 'CO'],
-    'CF': ['CE', 'CG', 'BV', 'CP'],
-    'CG': ['CF', 'CH', 'BW', 'CQ'],
-    'CH': ['CG', 'CI', 'BX', 'CR'],
-    'CI': ['CH', 'CJ', 'BY', 'CS'],
-    'CJ': ['CI', 'CK', 'BZ', 'CT'],
-    'CK': ['CJ', 'CL', 'CA', 'CU'],
-    'CL': ['CK', 'CB', 'CV'],
-    'CM': ['CN', 'CC'],
-    'CN': ['CM', 'CO', 'CD'],
-    'CO': ['CN', 'CP', 'CE'],
-    'CP': ['CO', 'CQ', 'CF'],
-    'CQ': ['CP', 'CR', 'CG'],
-    'CR': ['CQ', 'CS', 'CH'],
-    'CS': ['CR', 'CT', 'CI'],
-    'CT': ['CS', 'CU', 'CJ'],
-    'CU': ['CT', 'CV', 'CK'],
-    'CV': ['CU', 'CL']
-}
-
 
 
 # Define regions for the hierarchical routing (nodes belonging to different regions)
-region_map = {
-    'A': 1, 'B': 1, 'C': 2, 'D': 2, 'E': 3, 'F': 3, 'G': 4, 'H': 4, 'I': 5, 'J': 5,
-    'K': 1, 'L': 1, 'M': 2, 'N': 2, 'O': 3, 'P': 3, 'Q': 4, 'R': 4, 'S': 5, 'T': 5,
-    'U': 6, 'V': 6, 'W': 7, 'X': 7, 'Y': 8, 'Z': 8, 'AA': 9, 'AB': 9, 'AC': 10, 'AD': 10,
-    'AE': 6, 'AF': 6, 'AG': 7, 'AH': 7, 'AI': 8, 'AJ': 8, 'AK': 9, 'AL': 9, 'AM': 10, 'AN': 10,
-    'AO': 11, 'AP': 11, 'AQ': 12, 'AR': 12, 'AS': 13, 'AT': 13, 'AU': 14, 'AV': 14, 'AW': 15, 'AX': 15,
-    'AY': 11, 'AZ': 11, 'BA': 12, 'BB': 12, 'BC': 13, 'BD': 13, 'BE': 14, 'BF': 14, 'BG': 15, 'BH': 15,
-    'BI': 16, 'BJ': 16, 'BK': 17, 'BL': 17, 'BM': 18, 'BN': 18, 'BO': 19, 'BP': 19, 'BQ': 20, 'BR': 20,
-    'BS': 16, 'BT': 16, 'BU': 17, 'BV': 17, 'BW': 18, 'BX': 18, 'BY': 19, 'BZ': 19, 'CA': 20, 'CB': 20,
-    'CC': 21, 'CD': 21, 'CE': 22, 'CF': 22, 'CG': 23, 'CH': 23, 'CI': 24, 'CJ': 24, 'CK': 25, 'CL': 25,
-    'CM': 21, 'CN': 21, 'CO': 22, 'CP': 22, 'CQ': 23, 'CR': 23, 'CS': 24, 'CT': 24, 'CU': 25, 'CV': 25
-}
 
-# Define positions for better visualization layout (can be modified)
-pos = {
-'A': (0, 0),
-    'B': (1, 0),
-    'C': (2, 0),
-    'D': (3, 0),
-    'E': (4, 0),
-    'F': (5, 0),
-    'G': (6, 0),
-    'H': (7, 0),
-    'I': (8, 0),
-    'J': (9, 0),
-    'K': (0, 1),
-    'L': (1, 1),
-    'M': (2, 1),
-    'N': (3, 1),
-    'O': (4, 1),
-    'P': (5, 1),
-    'Q': (6, 1),
-    'R': (7, 1),
-    'S': (8, 1),
-    'T': (9, 1),
-    'U': (0, 2),
-    'V': (1, 2),
-    'W': (2, 2),
-    'X': (3, 2),
-    'Y': (4, 2),
-    'Z': (5, 2),
-    'AA': (6, 2),
-    'AB': (7, 2),
-    'AC': (8, 2),
-    'AD': (9, 2),
-    'AE': (0, 3),
-    'AF': (1, 3),
-    'AG': (2, 3),
-    'AH': (3, 3),
-    'AI': (4, 3),
-    'AJ': (5, 3),
-    'AK': (6, 3),
-    'AL': (7, 3),
-    'AM': (8, 3),
-    'AN': (9, 3),
-    'AO': (0, 4),
-    'AP': (1, 4),
-    'AQ': (2, 4),
-    'AR': (3, 4),
-    'AS': (4, 4),
-    'AT': (5, 4),
-    'AU': (6, 4),
-    'AV': (7, 4),
-    'AW': (8, 4),
-    'AX': (9, 4),
-    'AY': (0, 5),
-    'AZ': (1, 5),
-    'BA': (2, 5),
-    'BB': (3, 5),
-    'BC': (4, 5),
-    'BD': (5, 5),
-    'BE': (6, 5),
-    'BF': (7, 5),
-    'BG': (8, 5),
-    'BH': (9, 5),
-    'BI': (0, 6),
-    'BJ': (1, 6),
-    'BK': (2, 6),
-    'BL': (3, 6),
-    'BM': (4, 6),
-    'BN': (5, 6),
-    'BO': (6, 6),
-    'BP': (7, 6),
-    'BQ': (8, 6),
-    'BR': (9, 6),
-    'BS': (0, 7),
-    'BT': (1, 7),
-    'BU': (2, 7),
-    'BV': (3, 7),
-    'BW': (4, 7),
-    'BX': (5, 7),
-    'BY': (6, 7),
-    'BZ': (7, 7),
-    'CA': (8, 7),
-    'CB': (9, 7),
-    'CC': (0, 8),
-    'CD': (1, 8),
-    'CE': (2, 8),
-    'CF': (3, 8),
-    'CG': (4, 8),
-    'CH': (5, 8),
-    'CI': (6, 8),
-    'CJ': (7, 8),
-    'CK': (8, 8),
-    'CL': (9, 8),
-    'CM': (0, 9),
-    'CN': (1, 9),
-    'CO': (2, 9),
-    'CP': (3, 9),
-    'CQ': (4, 9),
-    'CR': (5, 9),
-    'CS': (6, 9),
-    'CT': (7, 9),
-    'CU': (8, 9),
-    'CV': (9, 9)
 
-}
+def generate_region_map(pos, rows, cols, region_rows, region_cols):
+    region_map = {}
+    region_count = 1
+
+    for key, (x, y) in pos.items():
+        # Determine the region based on rows and columns
+        region_x = x // region_cols
+        region_y = y // region_rows
+        region_number = region_y * (cols // region_cols) + region_x + 1
+        region_map[key] = region_number
+
+    return region_map
+
+# Define region dimensions (e.g., 5x5 cells per region)
+region_rows, region_cols = 5, 5
+
+# Generate the region map
+
+# Define positions for better visualization layout (can be modified) 510 cm x 580 cm
+def generate_coordinates(rows, cols):
+    pos = {}
+    letters = list(string.ascii_uppercase)  # A-Z
+
+    # Extend keys beyond Z (e.g., AA, AB, ...)
+    keys = []
+    for length in range(1, 3):  # Support up to 2-character column names
+        keys.extend([''.join(k) for k in itertools.product(letters, repeat=length)])
+
+    # Generate the coordinates
+    for y in range(rows):
+        for x in range(cols):
+            pos[keys[y*cols+x]] = (x, y)
+
+    return pos
+def generate_graph(pos, rows, cols):
+    graph = {}
+
+    for key, (x, y) in pos.items():
+        neighbors2 = []
+
+        # Check for valid neighbors (left, right, top, bottom)
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < cols and 0 <= ny < rows:
+                neighbor_key = next(k for k, v in pos.items() if v == (nx, ny))
+                neighbors2.append(neighbor_key)
+
+        graph[key] = neighbors2
+
+    return graph
+    
+pos = generate_coordinates(24, 28)
+
+graph=generate_graph(pos,24,28)
+
+# Generate a 20x29 coordinate map
+rows, cols = 25, 29
+
+region_map = generate_region_map(pos, 25, 29, region_rows, region_cols)
 # Heuristic values (assumed for this example)
 
-obstacle_nodes = {'A', 'B', 'C','D','E','K','L','M','N','O','U',
-'V','W','X','Y','AE','AF','AG','AH','AI','AO','AP','AQ','AR',
-'AS','AY','AZ','BA','BB','BC','BI','BJ','BK','BL','BM','BQ','AC','AD',
-'BR','AM','AN','BE','AW','AX','BF','BG','BH',}
+obstacle_nodes = set()
+x1,y1=6,26
+x2,y2=18,29
+for x,y in pos.items():
+    
+    if y1-1<=y[0]<=y2-1 and x1-1<=y[1]<=x2-1:
+        
+        obstacle_nodes.add(x)
+x1,y1=13,6
+x2,y2=17,20
+for x,y in pos.items():
+    
+    if y1-1<=y[0]<=y2-1 and x1-1<=y[1]<=x2-1:
+        
+        obstacle_nodes.add(x)
+x1,y1=20,6
+x2,y2=23,20
+for x,y in pos.items():
+    
+    if y1-1<=y[0]<=y2-1 and x1-1<=y[1]<=x2-1:
+        
+        obstacle_nodes.add(x)
+x1,y1=7,6
+x2,y2=12,10
+for x,y in pos.items():
+    
+    if y1-1<=y[0]<=y2-1 and x1-1<=y[1]<=x2-1:
+        
+        obstacle_nodes.add(x)
 
-def dynamic_obstacle_recognition(obstacles):
-    # Example: Simulate new obstacles (replace with real LiDAR processing logic)
-    dynamic_updates = {'CI', 'CZ'}
-    obstacle_nodes.update(dynamic_updates)
-    return 
-move_motors(forward_speed, forward_speed)
-move_motors(-forward_speed, -forward_speed)
-move_motors(forward_speed, -forward_speed)
-move_motors(-forward_speed, forward_speed)
-stop_motors()    #DEFINE MOVEMENT
+
+def get_node_from_angle_distance(angle, distance, pos,current_node):
+    """
+    Convert LiDAR data (angle, distance) to a node name based on the coordinate grid.
+    """
+    angle_rad = math.radians(angle)
+    x = distance * math.cos(angle_rad)
+    y = distance * math.sin(angle_rad)
+    x = x / 25.5
+    y = y / 20
+    x1, y1 = pos[current_node]
+    closest_node = None
+    min_distance = float('inf')
+
+    
+
+'''def dynamic_obstacle_recognition(obstacles, path, node_positions):
+    # Simulate new obstacles (replace with real LiDAR processing logic)
+    dynamic_updates = {}
+    for i in range(len(path) - 1):
+        current_node = path[i]
+        next_node = path[i + 1]
+    # Check each node in the path for obstacles
+    for scan in lidar.iter_scans:
+        for (angle,distance) in scan:
+            if distance<OBSTACLE_THRESHOLD:
+                x1, y1 = node_positions[current_node]
+                x2, y2 = node_positions[next_node]
+                if angle>315 or angle<45:
+                    
+                    if x2>x1:
+                        print(f"Obstacle detected at {next_node}")
+                        dynamic_updates.add(next_node)
+                elif angle>45 and angle<135:
+                    if y2>y1:
+                        print(f"Obstacle detected at {next_node}")
+                        dynamic_updates.add(next_node)
+                elif angle>135 and angle<225:
+                    if x1>x2:
+                        print(f"Obstacle detected at {next_node}")
+                        dynamic_updates.add(next_node)
+                elif angle>225 and angle<315:
+                    if y1>y2:
+                        print(f"Obstacle detected at {next_node}")
+                        dynamic_updates.add(next_node)
+
+    # Add the dynamically detected obstacles to the main obstacle set
+    obstacles.update(dynamic_updates)
+    
+    # Update the path with dynamic obstacles
+    # Any node that has become an obstacle will be removed from the path
+    updated_path = [node for node in path if node not in dynamic_updates]
+    
+    return updated_path, obstacles'''
+
+motor_select_pins = {
+    "motor1": mock_gpio.LED(2),  # GPIO pin 2 for motor 1 selection
+    "motor2": mock_gpio.LED(3),  # GPIO pin 3 for motor 2 selection
+    "motor3": mock_gpio.LED(4),  # GPIO pin 4 for motor 3 selection
+    "motor4": mock_gpio.LED(17), # GPIO pin 17 for motor 4 selection
+}
+
+pwm_motor_pin_1 = mock_gpio.PWMLED(12)  
+pwm_motor_pin_2 = mock_gpio.PWMLED(13)
+
+
+def reset_pins():
+        for pin in motor_select_pins.values():
+            pin.off()
+def movement(motor1, motor2, motor3, motor4, direction, speed=1.0, duration=2):
+    reset_pins()
+    motor_select_pins[motor1].on()
+    motor_select_pins[motor2].on()
+    motor_select_pins[motor3].on()
+    motor_select_pins[motor4].on()
+
+    if direction == "forward":
+        pwm_motor_pin_1.value = speed  # Forward motion for motor 1 and 2
+        pwm_motor_pin_2.value = speed  # Forward motion for motor 3 and 4
+    elif direction == "backward":
+        pwm_motor_pin_1.value = -speed  # Backward motion for motor 1 and 2
+        pwm_motor_pin_2.value = -speed  # Backward motion for motor 3 and 4
+    elif direction == "right":
+        pwm_motor_pin_1.value = speed  # Forward motion for motor 1 and 2
+        pwm_motor_pin_2.value = -speed  # Forward motion for motor 3 and 4
+    elif direction == "left":
+        pwm_motor_pin_1.value = -speed  # Backward motion for motor 1 and 2
+        pwm_motor_pin_2.value = speed  # Backward motion for motor 3 and 4
+
+    print(f"Moving {direction}")
+
+    sleep(duration)
+
+    # Stop the motors
+    pwm_motor_pin_1.off()
+    pwm_motor_pin_2.off()
+    reset_pins()
+    print("Motors stopped.")    
+    
+    
+    #TRIBA NACI CURRENT NODE POSITION
+
+
+    
 def move_to_node(current_node, next_node, node_positions):
+    print(f"Moving from {current_node} to {next_node}")
     x1, y1 = node_positions[current_node]
     x2, y2 = node_positions[next_node]
 
-    # Determine the direction of movement
     if x2 > x1:
-        print("Moving right")
-        move_motors(forward_speed, -forward_speed)
+        movement("motor1", "motor2", "motor3", "motor4", direction="right", speed=1.0, duration=2)
     elif x2 < x1:
-        print("Moving left")
-        move_motors(-forward_speed, forward_speed)
+        movement("motor1", "motor2", "motor3", "motor4", direction="left", speed=1.0, duration=2)
     elif y2 > y1:
-        print("Moving up")
-        move_motors(forward_speed, forward_speed)
+        movement("motor1", "motor2", "motor3", "motor4", direction="forward", speed=1.0, duration=2)
     elif y2 < y1:
-        print("Moving down")
-        move_motors(-forward_speed, -forward_speed)
-    stop_motors()
+        movement("motor1", "motor2", "motor3", "motor4", direction="backward", speed=1.0, duration=2)
+
 def execute_path(path, node_positions):
     for i in range(len(path) - 1):
         current_node = path[i]
         next_node = path[i + 1]
         move_to_node(current_node, next_node, node_positions)
+        
 
-start_node = 'I'
-goal_node = 'CL'
+start_node = 'BZ'
+goal_node = 'XY'
 
 def get_coordinates(goal_node, pos):
     return pos.get(goal_node, None)
 target_point=get_coordinates(goal_node,pos)
 
-def euclidean_distance(p1, p2):
+'''def euclidean_distance(p1, p2):
     return math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
 heuristic = {
      point: (float('inf') if point in obstacle_nodes else round(euclidean_distance(coord, target_point), 2))
     for point, coord in pos.items()
-}
+}'''
    
 
 obstacles=set(obstacle_nodes)
-dynamic_obstacles=dynamic_obstacle_recognition(obstacles)
+
 # Perform Greedy Best-First Search for hierarchical routing
 
+
 result_path = greedy_best_first_search_hierarchical(graph, start_node, goal_node, heuristic, region_map)
+#dynamic_obstacles=dynamic_obstacle_recognition(obstacles,result_path,pos)
+execute_path(result_path,pos)
 # IMPLEMENT LIDAR DYNAMIC OBSTACLE RECOGNITION
 print("Path from {} to {}: {}".format(start_node, goal_node, result_path))
 
 # Visualize the graph and the found path
 visualize_graph(graph, result_path, pos, region_map)
+
