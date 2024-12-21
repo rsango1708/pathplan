@@ -6,18 +6,16 @@ import string
 import itertools
 import time
 from time import sleep
-import rplidar
+import ld06
 from unittest import mock
-# Node class to store information about each node
-mock_gpio = mock.Mock()
-mock_gpio.setmode = mock.Mock()
-mock_gpio.setup = mock.Mock()
-mock_gpio.output = mock.Mock()
+import RPi.GPIO as gpio
+gpio.setmode(gpio.BCM)
 
 
 
-'''PORT_NAME = '/dev/ttyUSB0'  # Adjust this based on your Raspberry Pi's connection
-lidar = rplidar('/dev/ttyUSB0')
+
+PORT_NAME = '/dev/ttyS0'  # Adjust this based on your Raspberry Pi's connection
+lidar = ld06('/dev/ttyS0')
 
 # Set a threshold for detecting obstacles
 OBSTACLE_THRESHOLD = 255  # Threshold distance in mm (e.g., 500 mm = 0.5 meters)
@@ -74,7 +72,8 @@ def visualize_obstacles(dynamic_obstacle_nodes):
         plt.show()
 
 # Call the LiDAR processing function
-process_lidar_data()'''
+process_lidar_data()
+visualize_obstacles()
 
 
 
@@ -290,7 +289,7 @@ def get_node_from_angle_distance(angle, distance, pos,current_node):
 
     
 
-'''def dynamic_obstacle_recognition(obstacles, path, node_positions):
+def dynamic_obstacle_recognition(obstacles, path, node_positions):
     # Simulate new obstacles (replace with real LiDAR processing logic)
     dynamic_updates = {}
     for i in range(len(path) - 1):
@@ -327,49 +326,91 @@ def get_node_from_angle_distance(angle, distance, pos,current_node):
     # Any node that has become an obstacle will be removed from the path
     updated_path = [node for node in path if node not in dynamic_updates]
     
-    return updated_path, obstacles'''
+    return updated_path, obstacles
 
 motor_select_pins = {
-    "motor1": mock_gpio.LED(2),  # GPIO pin 2 for motor 1 selection
-    "motor2": mock_gpio.LED(3),  # GPIO pin 3 for motor 2 selection
-    "motor3": mock_gpio.LED(4),  # GPIO pin 4 for motor 3 selection
-    "motor4": mock_gpio.LED(17), # GPIO pin 17 for motor 4 selection
+    
+    'M1': {'In1': 22, 'In2': 23},
+    'M2': {'In1': 5, 'In2': 6},
+    'M3': {'In1': 17,  'In2': 27},
+    'M4': {'In1': 26, 'In2': 16}
+
 }
+for motor, pins in motor_select_pins.items():
+    gpio.setup(pins['In1'], gpio.OUT)
+    gpio.setup(pins['In2'], gpio.OUT)
+pwm_pin=13
+gpio.setup(pwm_pin, gpio.OUT)
 
-pwm_motor_pin_1 = mock_gpio.PWMLED(12)  
-pwm_motor_pin_2 = mock_gpio.PWMLED(13)
-
-
+pwm = gpio.PWM(pwm_pin, 100)  # 100 Hz frequency
+pwm.start(0)
 def reset_pins():
         for pin in motor_select_pins.values():
             pin.off()
-def movement(motor1, motor2, motor3, motor4, direction, speed=1.0, duration=2):
+
+
+def motor1(direction, speed):
+    """Control Motor 1"""
+    gpio.output(motor_select_pins['M1_In1'], direction == 'forward')
+    gpio.output(motor_select_pins['M1_In2'], direction == 'backward')
+    pwm.ChangeDutyCycle(speed)
+
+def motor2(direction, speed):
+    """Control Motor 2"""
+    gpio.output(motor_select_pins['M2_In1'], direction == 'forward')
+    gpio.output(motor_select_pins['M2_In2'], direction == 'backward')
+    pwm.ChangeDutyCycle(speed)
+
+def motor3(direction, speed):
+    """Control Motor 3"""
+    gpio.output(motor_select_pins['M3_In1'], direction == 'forward')
+    gpio.output(motor_select_pins['M3_In2'], direction == 'backward')
+    pwm.ChangeDutyCycle(speed)
+
+def motor4(direction, speed):
+    """Control Motor 4"""
+    gpio.output(motor_select_pins['M4_In1'], direction == 'forward')
+    gpio.output(motor_select_pins['M4_In2'], direction == 'backward')
+    pwm.ChangeDutyCycle(speed)
+def movement( direction2, duration=2):
     reset_pins()
-    motor_select_pins[motor1].on()
-    motor_select_pins[motor2].on()
-    motor_select_pins[motor3].on()
-    motor_select_pins[motor4].on()
+    for pin in motor_select_pins.values():
+        gpio.output(pin, gpio.LOW)
 
-    if direction == "forward":
-        pwm_motor_pin_1.value = speed  # Forward motion for motor 1 and 2
-        pwm_motor_pin_2.value = speed  # Forward motion for motor 3 and 4
-    elif direction == "backward":
-        pwm_motor_pin_1.value = -speed  # Backward motion for motor 1 and 2
-        pwm_motor_pin_2.value = -speed  # Backward motion for motor 3 and 4
-    elif direction == "right":
-        pwm_motor_pin_1.value = speed  # Forward motion for motor 1 and 2
-        pwm_motor_pin_2.value = -speed  # Forward motion for motor 3 and 4
-    elif direction == "left":
-        pwm_motor_pin_1.value = -speed  # Backward motion for motor 1 and 2
-        pwm_motor_pin_2.value = speed  # Backward motion for motor 3 and 4
+    if direction2 == "forward":
+        motor1(direction='forward',speed=50)
+        motor2(direction='forward',speed=50)
+        motor3(direction='forward',speed=50)
+        motor4(direction='forward',speed=50)
+        
 
-    print(f"Moving {direction}")
+    elif direction2 == 'backward':
+        motor1(direction='backward',speed=50)
+        motor2(direction='backward',speed=50)
+        motor3(direction='backward',speed=50)
+        motor4(direction='backward',speed=50)
+        
+    elif direction2 == "right":
+        motor1(direction='backward',speed=50)
+        motor2(direction='forward',speed=50)
+        motor3(direction='forward',speed=50)
+        motor4(direction='backward',speed=50)
+        
+    elif direction2 == "left":
+        motor1(direction='forward',speed=50)
+        motor2(direction='backward',speed=50)
+        motor3(direction='backward',speed=50)
+        motor4(direction='forward',speed=50)
+
+    print(f"Moving {direction2}")
 
     sleep(duration)
 
-    # Stop the motors
-    pwm_motor_pin_1.off()
-    pwm_motor_pin_2.off()
+    
+
+    # Reset all pins to low to stop motors completely
+    for pin in motor_select_pins.values():
+        gpio.output(pin, gpio.LOW)
     reset_pins()
     print("Motors stopped.")    
     
@@ -406,12 +447,12 @@ def get_coordinates(goal_node, pos):
     return pos.get(goal_node, None)
 target_point=get_coordinates(goal_node,pos)
 
-'''def euclidean_distance(p1, p2):
+def euclidean_distance(p1, p2):
     return math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
 heuristic = {
      point: (float('inf') if point in obstacle_nodes else round(euclidean_distance(coord, target_point), 2))
     for point, coord in pos.items()
-}'''
+}
    
 
 obstacles=set(obstacle_nodes)
